@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>属于我们的独家记忆 ❤️</title>
+    <style>
+        /* --- 基础样式 --- */
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            color: #333;
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            position: relative;
+        }
+
+        /* =========================================
+           【背景设置】让照片充满屏幕且清晰
+           ========================================= */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -2;
+
+            /* 👇 这里用的是你刚才转换好的新照片名字 */
+            background-image: url('photos/bg.jpg');
+            
+            background-size: cover;
+            background-position: center;
+
+            /* 👇 这里调高了透明度，让背景更清晰一点，配合毛玻璃很好看 */
+            opacity: 0.6; 
+        }
+
+        /* =========================================
+           【核心美化】毛玻璃质感容器
+           ========================================= */
+        .container {
+            /* 👇 关键：白色背景调成 60% 透明度，让背景透出来 */
+            background: rgba(255, 255, 255, 0.6);
+            
+            /* 👇 关键：背景模糊滤镜（毛玻璃效果），让透出来的背景不杂乱 */
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px); /* 兼容苹果手机 */
+
+            /* 加一个淡淡的白边，更有质感 */
+            border: 1px solid rgba(255, 255, 255, 0.5);
+
+            padding: 35px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+            margin-bottom: 50px;
+            z-index: 1;
+        }
+
+        h1 { 
+            color: #ff6b6b; 
+            margin-bottom: 10px; 
+            /* 文字加一点白色描边，防止背景太花看不清 */
+            text-shadow: 2px 2px 0px rgba(255,255,255,0.8); 
+        }
+
+        .section-title {
+            margin-top: 40px; margin-bottom: 20px; color: #444;
+            font-size: 1.2rem; font-weight: bold; display: inline-block;
+            border-bottom: 3px solid #ffccc7;
+        }
+
+        /* 计时器样式 - 稍微透明一点 */
+        .timer-box {
+            background-color: rgba(255, 240, 240, 0.85);
+            padding: 15px 25px; border-radius: 50px; color: #ff4757;
+            font-weight: bold; margin: 20px 0; display: inline-block;
+            box-shadow: 0 5px 15px rgba(255, 71, 87, 0.15);
+        }
+
+        .btn-album {
+            background: linear-gradient(45deg, #ff9a9e 0%, #fad0c4 99%, #fad0c4 100%);
+            color: white; border: none; padding: 15px 40px;
+            border-radius: 10px; font-size: 1.1rem; cursor: pointer;
+            box-shadow: 0 5px 15px rgba(255, 154, 158, 0.4);
+            transition: 0.3s; width: 80%;
+            /* 按钮文字加阴影更清晰 */
+            text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+        }
+        .btn-album:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(255, 154, 158, 0.6); }
+
+        /* 弹窗样式 */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); /* 遮罩稍微淡一点 */
+            backdrop-filter: blur(5px); /* 弹窗背景也加模糊 */
+            z-index: 2000;
+            display: flex; justify-content: center; align-items: center;
+            opacity: 0; pointer-events: none; transition: opacity 0.3s;
+        }
+        .modal-overlay.show { opacity: 1; pointer-events: auto; }
+
+        .modal-content {
+            background: rgba(255, 255, 255, 0.95); /* 弹窗背景几乎不透明 */
+            padding: 25px; border-radius: 20px;
+            width: 90%; max-width: 800px; height: 80vh;
+            position: relative; display: flex; flex-direction: column;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+        }
+        
+        .modal-header h2 { margin: 0 0 20px 0; color: #555; }
+        
+        .gallery-scroll {
+            flex: 1; overflow-y: auto; display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 15px; padding-right: 5px;
+        }
+        .gallery-scroll img {
+            width: 100%; aspect-ratio: 1/1; object-fit: cover;
+            border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); transition: 0.3s;
+        }
+        .gallery-scroll img:hover { transform: scale(1.03); }
+
+        .close-btn {
+            position: absolute; top: 15px; right: 20px;
+            font-size: 35px; color: #aaa; cursor: pointer; line-height: 1; transition: 0.2s;
+        }
+        .close-btn:hover { color: #ff6b6b; transform: rotate(90deg); }
+
+        /* 优惠券网格 */
+        .coupons-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+        .coupon { 
+            background: rgba(255, 255, 255, 0.8); /* 优惠券半透明 */
+            border: 2px dashed #ffccc7; border-radius: 10px; padding: 10px; 
+            cursor: pointer; transition: all 0.3s; 
+        }
+        .coupon:hover { background-color: #fff; transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+        .coupon-icon { font-size: 1.8rem; display: block; margin-bottom: 5px; }
+        
+        .quote-box { border-left: 5px solid #ff6b6b; background: rgba(249, 249, 249, 0.7); padding: 15px; text-align: left; font-style: italic; color: #555; margin: 20px 0; }
+        
+        .btn-action { background-color: #ff6b6b; color: white; border: none; padding: 12px 30px; border-radius: 50px; font-size: 1rem; cursor: pointer; margin-top: 20px; box-shadow: 0 5px 15px rgba(255, 107, 107, 0.3); }
+        .btn-outline { background-color: transparent; border: 1px solid #ff6b6b; color: #ff6b6b; padding: 8px 20px; border-radius: 50px; font-size: 0.9rem; margin-top: 5px; cursor: pointer;}
+        .heart { position: fixed; top: -10px; font-size: 20px; z-index: 999; animation: fall linear forwards; pointer-events: none;}
+        @keyframes fall { to { transform: translateY(110vh) rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>✨ 新年快乐，我的宝贝</h1>
+        
+        <div class="timer-box" id="timer">正在计算我们相爱的时光...</div>
+        <p style="color: #555; font-size: 0.9rem; font-weight: bold;">背景是我们最美的那一刻 ❤️</p>
+
+        <div class="section-title">📸 我们的回忆录</div>
+        <br>
+        <button class="btn-album" onclick="openAlbum()">📖 点击打开我们的私密相册</button>
+
+        <div class="section-title" style="margin-top: 50px;">💌 专属特权兑换券</div>
+        <div class="coupons-grid">
+            <div class="coupon" onclick="useCoupon('💆 专属按摩券')"><span class="coupon-icon">💆</span><span class="coupon-text">专属按摩</span></div>
+            <div class="coupon" onclick="useCoupon('🍲 大餐请客券')"><span class="coupon-icon">🍲</span><span class="coupon-text">吃顿好的</span></div>
+            <div class="coupon" onclick="useCoupon('🎬 电影陪伴券')"><span class="coupon-icon">🎬</span><span class="coupon-text">看场电影</span></div>
+            <div class="coupon" onclick="useCoupon('💕 清空购物车')"><span class="coupon-icon">💕</span><span class="coupon-text">买个小礼物</span></div>
+        </div>
+
+        <div class="section-title">🍬 甜分补给站</div>
+        <div class="quote-box" id="quote-display">加载中...</div>
+        <button class="btn-outline" onclick="newQuote()">换一句</button>
+
+        <br><br>
+        <button class="btn-action" onclick="createHearts()">再下一场爱心雨 ❤️</button>
+    </div>
+
+    <div class="modal-overlay" id="albumModal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeAlbum()">&times;</span>
+            <div class="modal-header"><h2>💖 我们的点点滴滴 (往下翻)</h2></div>
+            
+            <div class="gallery-scroll">
+     <img src="photos/1.jpg" alt="回忆1">
+    <img src="photos/2.jpg" alt="回忆2">
+    <img src="photos/3.jpg" alt="回忆3">
+    <img src="photos/4.jpg" alt="回忆4">
+    <img src="photos/5.jpg" alt="回忆5">
+    <img src="photos/6.jpg" alt="回忆6">
+    <img src="photos/7.jpg" alt="回忆7">
+    <img src="photos/8.jpg" alt="回忆8">
+    <img src="photos/9.jpg" alt="回忆9">
+    <img src="photos/10.jpg" alt="回忆10">
+    <img src="photos/11.jpg" alt="回忆11">
+    <img src="photos/12.jpg" alt="回忆12">
+    <img src="photos/13.jpg" alt="回忆13">
+    <img src="photos/14.jpg" alt="回忆14">
+    <img src="photos/15.jpg" alt="回忆15">
+    <img src="photos/16.jpg" alt="回忆16">
+    <img src="photos/17.jpg" alt="回忆17">
+    <img src="photos/18.jpg" alt="回忆18">
+    <img src="photos/19.jpg" alt="回忆19">
+    <img src="photos/20.jpg" alt="回忆20">
+    <img src="photos/21.jpg" alt="回忆21">
+    <img src="photos/22.jpg" alt="回忆22">
+    <img src="photos/23.jpg" alt="回忆23">
+    <img src="photos/24.jpg" alt="回忆24">
+    <img src="photos/25.jpg" alt="回忆25">
+    <img src="photos/26.jpg" alt="回忆26">
+    <img src="photos/27.jpg" alt="回忆27">
+    <img src="photos/28.jpg" alt="回忆28">
+    <img src="photos/29.jpg" alt="回忆29">
+    <img src="photos/30.jpg" alt="回忆30">
+    <img src="photos/31.jpg" alt="回忆31">
+    <img src="photos/32.jpg" alt="回忆32">
+    <img src="photos/33.jpg" alt="回忆33">
+    <img src="photos/34.jpg" alt="回忆34">
+    <img src="photos/35.jpg" alt="回忆35">
+    <img src="photos/36.jpg" alt="回忆36">
+    <img src="photos/37.jpg" alt="回忆37">
+    <img src="photos/38.jpg" alt="回忆38">
+    <img src="photos/39.jpg" alt="回忆39">
+    <img src="photos/40.jpg" alt="回忆40">
+    <img src="photos/41.jpg" alt="回忆41">
+    <img src="photos/42.jpg" alt="回忆42">
+    <img src="photos/43.jpg" alt="回忆43">
+    <img src="photos/44.jpg" alt="回忆44">
+    <img src="photos/45.jpg" alt="回忆45">
+    <img src="photos/46.jpg" alt="回忆46">
+    <img src="photos/47.jpg" alt="回忆47">
+    <img src="photos/48.jpg" alt="回忆48">
+    <img src="photos/49.jpg" alt="回忆49">
+    <img src="photos/50.jpg" alt="回忆50">
+    <img src="photos/51.jpg" alt="回忆51">
+    <img src="photos/52.jpg" alt="回忆52">
+    <img src="photos/53.jpg" alt="回忆53">
+    <img src="photos/54.jpg" alt="回忆54">
+    <img src="photos/55.jpg" alt="回忆55">
+    <img src="photos/56.jpg" alt="回忆56">
+    <img src="photos/57.jpg" alt="回忆57">
+    <img src="photos/58.jpg" alt="回忆58">
+    <img src="photos/59.jpg" alt="回忆59">
+    <img src="photos/60.jpg" alt="回忆60">
+    <img src="photos/61.jpg" alt="回忆61">
+    <img src="photos/62.jpg" alt="回忆62">
+    <img src="photos/63.jpg" alt="回忆63">
+    <img src="photos/64.jpg" alt="回忆64">
+    <img src="photos/65.jpg" alt="回忆65">
+    <img src="photos/66.jpg" alt="回忆66">
+    <img src="photos/67.jpg" alt="回忆67">
+    <img src="photos/68.jpg" alt="回忆68">
+    <img src="photos/69.jpg" alt="回忆69">
+    <img src="photos/70.jpg" alt="回忆70">
+    <img src="photos/71.jpg" alt="回忆71">
+    <img src="photos/72.jpg" alt="回忆72">
+    <img src="photos/73.jpg" alt="回忆73">
+    <img src="photos/74.jpg" alt="回忆74">
+    <img src="photos/75.jpg" alt="回忆75">
+    <img src="photos/76.jpg" alt="回忆76">
+    <img src="photos/77.jpg" alt="回忆77">
+    <img src="photos/78.jpg" alt="回忆78">
+    <img src="photos/79.jpg" alt="回忆79">
+    <img src="photos/80.jpg" alt="回忆80">
+    <img src="photos/81.jpg" alt="回忆81">
+    <img src="photos/82.jpg" alt="回忆82">
+    <img src="photos/83.jpg" alt="回忆83">
+    <img src="photos/84.jpg" alt="回忆84">
+    <img src="photos/85.jpg" alt="回忆85">
+    <img src="photos/86.jpg" alt="回忆86">
+    <img src="photos/87.jpg" alt="回忆87">
+    <img src="photos/88.jpg" alt="回忆88">
+    <img src="photos/89.jpg" alt="回忆89">
+    <img src="photos/90.jpg" alt="回忆90">
+    <img src="photos/91.jpg" alt="回忆91">
+    <img src="photos/92.jpg" alt="回忆92">
+    <img src="photos/93.jpg" alt="回忆93">
+    <img src="photos/94.jpg" alt="回忆94">
+    <img src="photos/95.jpg" alt="回忆95">
+    <img src="photos/96.jpg" alt="回忆96">
+    <img src="photos/97.jpg" alt="回忆97">
+    <img src="photos/98.jpg" alt="回忆98">
+    <img src="photos/99.jpg" alt="回忆99">
+    <img src="photos/100.jpg" alt="回忆100">
+    <img src="photos/101.jpg" alt="回忆101">
+    <img src="photos/102.jpg" alt="回忆102">
+    <img src="photos/103.jpg" alt="回忆103">
+    <img src="photos/104.jpg" alt="回忆104">
+    <img src="photos/105.jpg" alt="回忆105">
+    <img src="photos/106.jpg" alt="回忆106">
+    <img src="photos/107.jpg" alt="回忆107">
+    <img src="photos/108.jpg" alt="回忆108">
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // ================= 配置区域 =================
+        const startDate = new Date(2023, 11, 15); 
+        const quotes = ["我没说完的话，都在我看你的眼神里。", "醒来觉得甚是爱你。", "你在身边，四季如春。", "所爱隔山海，山海皆可平。", "这一生，我只愿牵你的手。"];
+        // ===========================================
+
+        function openAlbum() { document.getElementById('albumModal').classList.add('show'); document.body.style.overflow = 'hidden'; }
+        function closeAlbum() { document.getElementById('albumModal').classList.remove('show'); document.body.style.overflow = 'auto'; }
+        document.getElementById('albumModal').addEventListener('click', function(e) { if (e.target === this) closeAlbum(); });
+
+        function updateTimer() {
+            const now = new Date(); const diff = now - startDate;
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+            const minutes = Math.floor((diff / 1000 / 60) % 60);
+            const seconds = Math.floor((diff / 1000) % 60);
+            document.getElementById("timer").innerText = `❤️ 相爱 ${days}天 ${hours}小时 ${minutes}分 ${seconds}秒 ❤️`;
+        }
+        setInterval(updateTimer, 1000); updateTimer();
+
+        function useCoupon(name) { alert("✅ 兑换成功！截图发给我吧：\n" + name); }
+        function newQuote() { document.getElementById("quote-display").innerText = "“ " + quotes[Math.floor(Math.random() * quotes.length)] + " ”"; }
+        newQuote();
+        function createHearts() {
+            for (let i = 0; i < 30; i++) {
+                setTimeout(() => {
+                    const heart = document.createElement('div'); heart.classList.add('heart'); heart.innerHTML = '❤️';
+                    heart.style.left = Math.random() * 100 + "vw"; heart.style.animationDuration = Math.random() * 2 + 3 + "s";
+                    document.body.appendChild(heart); setTimeout(() => heart.remove(), 5000);
+                }, i * 80);
+            }
+        }
+        window.onload = createHearts; 
+    </script>
+</body>
+</html>
